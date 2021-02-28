@@ -21,7 +21,6 @@ func TestConnect(t *testing.T) {
 			switch v.Type {
 			case realtime.TICKER:
 				fmt.Printf("%s	%+v\n", v.Symbol, v.Ticker)
-
 			case realtime.TRADES:
 				fmt.Printf("%s	%+v\n", v.Symbol, v.Trades)
 				for i := range v.Trades {
@@ -29,7 +28,6 @@ func TestConnect(t *testing.T) {
 						fmt.Printf("-----------------------------%+v\n", v.Trades[i])
 					}
 				}
-
 			case realtime.ORDERBOOK:
 				fmt.Printf("%s	%+v\n", v.Symbol, v.Orderbook)
 

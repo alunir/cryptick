@@ -31,9 +31,9 @@ type Types int
 const (
 	ALL Types = iota
 	TICKER
-	EXECUTIONS
-	BOARD
-	DIFF_BOARDS
+	TRADES
+	ORDERBOOK
+	DIFF_ORDERBOOK
 	CHILD_ORDERS
 	PARENT_ORDERS
 	UNDEFINED
@@ -56,9 +56,9 @@ type requestForPrivate struct {
 type Response struct {
 	Types       Types
 	ProductCode types.ProductCode
-	Board       markets.Orderbook
+	Orderbook   markets.Orderbook
 	Ticker      markets.Ticker
-	Executions  []markets.Trade
+	Trades      []markets.Trade
 
 	ChildOrderEvent  []fills.ChildOrderFill
 	ParentOrderEvent []fills.ParentOrderFill
@@ -192,15 +192,15 @@ RECONNECT:
 			switch {
 			case strings.HasPrefix(name, "lightning_board_snapshot_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_snapshot_"):])
-				w.Types = BOARD
-				if err := json.Unmarshal(data, &w.Board); err != nil {
+				w.Types = ORDERBOOK
+				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					l.Printf("[WARN]: cant unmarshal board %+v", err)
 				}
 
 			case strings.HasPrefix(name, "lightning_board_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_"):])
-				w.Types = DIFF_BOARDS
-				if err := json.Unmarshal(data, &w.Board); err != nil {
+				w.Types = DIFF_ORDERBOOK
+				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					l.Printf("[WARN]: cant unmarshal diff board %+v", err)
 				}
 
@@ -213,8 +213,8 @@ RECONNECT:
 
 			case strings.HasPrefix(name, "lightning_executions_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_executions_"):])
-				w.Types = EXECUTIONS
-				if err := json.Unmarshal(data, &w.Executions); err != nil {
+				w.Types = TRADES
+				if err := json.Unmarshal(data, &w.Trades); err != nil {
 					l.Printf("[WARN]: cant unmarshal executions %+v", err)
 				}
 
