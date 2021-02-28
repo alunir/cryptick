@@ -51,7 +51,6 @@ type request struct {
 
 type Response struct {
 	Type        int
-	Symbol      string
 	Ticker      []markets.Ticker
 	Trades      []markets.Trade
 	OrderbookL2 []markets.OrderBookL2

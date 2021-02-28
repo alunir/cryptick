@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/alunir/cryptick/bitmex/realtime"
+	"github.com/alunir/cryptick/deribit/realtime"
 )
 
 func TestConnect(t *testing.T) {
@@ -13,7 +13,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{realtime.BitmexWSQuote}, []string{"XBTUSD"}, nil)
+	go realtime.Connect(ctx, ch, []string{"quote", "trades"}, []string{"BTC-PERPETUAL"}, nil)
 
 	for {
 		select {
@@ -25,8 +25,6 @@ func TestConnect(t *testing.T) {
 				fmt.Printf("%+v\n", v.Trades)
 			case realtime.ORDERBOOK:
 				fmt.Printf("%+v\n", v.Orderbook)
-			case realtime.ORDERBOOK_L2:
-				fmt.Printf("%+v\n", v.OrderbookL2)
 			case realtime.UNDEFINED:
 				fmt.Printf("%s\n", v.Results.Error())
 			}
@@ -41,19 +39,18 @@ func TestConnect(t *testing.T) {
 // 	defer cancel()
 
 // 	ch := make(chan realtime.Response)
-// 	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"orders", "fills"}, nil)
+// 	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"child_order_events", "parent_order_events"}, nil)
 
 // 	for {
 // 		select {
 // 		case v := <-ch:
-// 			switch v.Type {
-// 			case realtime.ORDERS:
-// 				fmt.Printf("%d	%+v\n", v.Type, v.Orders)
-// 			case realtime.FILLS:
-// 				fmt.Printf("%d	%+v\n", v.Type, v.Fills)
-
+// 			switch v.Types {
+// 			case realtime.CHILD_ORDERS:
+// 				fmt.Printf("%d	%+v\n", v.Types, v.ChildOrderEvent)
+// 			case realtime.PARENT_ORDERS:
+// 				fmt.Printf("%d	%+v\n", v.Types, v.ParentOrderEvent)
 // 			case realtime.UNDEFINED:
-// 				fmt.Printf("UNDEFINED %s	%s\n", v.Symbol, v.Results.Error())
+// 				fmt.Printf("UNDEFINED %s	%s\n", v.ProductCode, v.Results.Error())
 // 			}
 // 		}
 // 	}
