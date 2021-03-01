@@ -93,13 +93,13 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
 	return nil
 }
 
-func Connect(ctx context.Context, ch chan Response, channels, symbols []string, l *log.Logger) error {
-	if l == nil {
-		l = log.New(os.Stdout, "bitmex websocket", log.Llongfile)
+func Connect(ctx context.Context, ch chan Response, channels, symbols []string, cfg *Configuration) error {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "bitmex websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial("wss://www.bitmex.com/realtime", nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -119,7 +119,7 @@ RECONNECT:
 			var res Response
 			messageType, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
@@ -134,7 +134,7 @@ RECONNECT:
 
 			success, err := jsonparser.GetBoolean(msg, "success")
 			if success {
-				l.Printf("[SUCCESS]: %+v", string(msg))
+				cfg.l.Printf("[SUCCESS]: %+v", string(msg))
 				continue
 			}
 
@@ -146,7 +146,7 @@ RECONNECT:
 			data, _, _, err := jsonparser.Get(msg, "data")
 			if err != nil {
 				err = fmt.Errorf("[ERROR]: data err: %v %s", err, string(msg))
-				l.Println(err)
+				cfg.l.Println(err)
 				res.Type = ERROR
 				res.Results = err
 				ch <- res
@@ -157,31 +157,31 @@ RECONNECT:
 			case BitmexWSQuote:
 				res.Type = TICKER
 				if err := json.Unmarshal(data, &res.Ticker); err != nil {
-					l.Printf("[WARN]: cant unmarshal ticker %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 					continue
 				}
 			case BitmexWSTrade:
 				res.Type = TRADES
 				if err := json.Unmarshal(data, &res.Trades); err != nil {
-					l.Printf("[WARN]: cant unmarshal trades %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal trades %+v", err)
 					continue
 				}
 			case BitmexWSOrderBookL2:
 				res.Type = ORDERBOOK_L2
 				if err := json.Unmarshal(data, &res.OrderbookL2); err != nil {
-					l.Printf("[WARN]: cant unmarshal orderbookL2 %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal orderbookL2 %+v", err)
 					continue
 				}
 			case BitmexWSOrderBookL2_25:
 				res.Type = ORDERBOOK_L2
 				if err := json.Unmarshal(data, &res.OrderbookL2); err != nil {
-					l.Printf("[WARN]: cant unmarshal orderbookL2_25 %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal orderbookL2_25 %+v", err)
 					continue
 				}
 			case BitmexWSOrderBook10:
 				res.Type = ORDERBOOK
 				if err := json.Unmarshal(data, &res.Orderbook); err != nil {
-					l.Printf("[WARN]: cant unmarshal orderbook10 %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal orderbook10 %+v", err)
 					continue
 				}
 			default:

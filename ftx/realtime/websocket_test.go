@@ -13,7 +13,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"ticker"}, []string{"BTC-PERP", "ETH-PERP"}, nil)
+	go realtime.Connect(ctx, ch, []string{"ticker"}, []string{"BTC-PERP", "ETH-PERP"}, realtime.Config())
 
 	for {
 		select {

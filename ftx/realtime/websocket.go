@@ -123,13 +123,13 @@ EXIT:
 	return err
 }
 
-func Connect(ctx context.Context, ch chan Response, channels, symbols []string, l *log.Logger) error {
-	if l == nil {
-		l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
+func Connect(ctx context.Context, ch chan Response, channels, symbols []string, cfg *Configuration) error {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial("wss://ftx.com/ws/", nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,7 +150,7 @@ RECONNECT:
 			var res Response
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
@@ -159,7 +159,7 @@ RECONNECT:
 
 			typeMsg, err := jsonparser.GetString(msg, "type")
 			if typeMsg == "error" {
-				l.Printf("[ERROR]: error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -168,7 +168,7 @@ RECONNECT:
 
 			channel, err := jsonparser.GetString(msg, "channel")
 			if err != nil {
-				l.Printf("[ERROR]: channel error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: channel error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -177,7 +177,7 @@ RECONNECT:
 
 			market, err := jsonparser.GetString(msg, "market")
 			if err != nil {
-				l.Printf("[ERROR]: market err: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: market err: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -189,11 +189,11 @@ RECONNECT:
 			data, _, _, err := jsonparser.Get(msg, "data")
 			if err != nil {
 				if isSubscribe, _ := jsonparser.GetString(msg, "type"); isSubscribe == "subscribed" {
-					l.Printf("[SUCCESS]: %s %+v", isSubscribe, string(msg))
+					cfg.l.Printf("[SUCCESS]: %s %+v", isSubscribe, string(msg))
 					continue
 				} else {
 					err = fmt.Errorf("[ERROR]: data err: %v %s", err, string(msg))
-					l.Println(err)
+					cfg.l.Println(err)
 					res.Type = ERROR
 					res.Results = err
 					ch <- res
@@ -205,14 +205,14 @@ RECONNECT:
 			case "ticker":
 				res.Type = TICKER
 				if err := json.Unmarshal(data, &res.Ticker); err != nil {
-					l.Printf("[WARN]: cant unmarshal ticker %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 					continue
 				}
 
 			case "trades":
 				res.Type = TRADES
 				if err := json.Unmarshal(data, &res.Trades); err != nil {
-					l.Printf("[WARN]: cant unmarshal trades %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal trades %+v", err)
 					continue
 				}
 
@@ -221,7 +221,7 @@ RECONNECT:
 				// see; https://docs.ftx.com/#orderbooks
 				res.Type = ORDERBOOK
 				if err := json.Unmarshal(data, &res.Orderbook); err != nil {
-					l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
 					continue
 				}
 
@@ -247,19 +247,19 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, l *log.Logger, subaccount ...string) {
-	if l == nil {
-		l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
+func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, cfg *Configuration) {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial("wss://ftx.com/ws/", nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// sign up
-	if err := signature(conn, key, secret, subaccount); err != nil {
+	if err := signature(conn, key, secret, cfg.subaccount); err != nil {
 		log.Fatal(err)
 	}
 
@@ -278,7 +278,7 @@ RECONNECT:
 			var res Response
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
@@ -287,7 +287,7 @@ RECONNECT:
 
 			typeMsg, err := jsonparser.GetString(msg, "type")
 			if typeMsg == "error" {
-				l.Printf("[ERROR]: error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -296,7 +296,7 @@ RECONNECT:
 
 			channel, err := jsonparser.GetString(msg, "channel")
 			if err != nil {
-				l.Printf("[ERROR]: channel error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: channel error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -306,11 +306,11 @@ RECONNECT:
 			data, _, _, err := jsonparser.Get(msg, "data")
 			if err != nil {
 				if isSubscribe, _ := jsonparser.GetString(msg, "type"); isSubscribe == "subscribed" {
-					l.Printf("[SUCCESS]: %s %+v", isSubscribe, string(msg))
+					cfg.l.Printf("[SUCCESS]: %s %+v", isSubscribe, string(msg))
 					continue
 				} else {
 					err = fmt.Errorf("[ERROR]: data err: %v %s", err, string(msg))
-					l.Println(err)
+					cfg.l.Println(err)
 					res.Type = ERROR
 					res.Results = err
 					ch <- res
@@ -323,14 +323,14 @@ RECONNECT:
 			case "orders":
 				res.Type = ORDERS
 				if err := json.Unmarshal(data, &res.Orders); err != nil {
-					l.Printf("[WARN]: cant unmarshal orders %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal orders %+v", err)
 					continue
 				}
 
 			case "fills":
 				res.Type = FILLS
 				if err := json.Unmarshal(data, &res.Fills); err != nil {
-					l.Printf("[WARN]: cant unmarshal fills %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal fills %+v", err)
 					continue
 				}
 

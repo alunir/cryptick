@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	USE1                       = "wss://ws.lightstream.bitflyer.com/json-rpc"
 	READDEADLINE time.Duration = 300
 )
 
@@ -137,13 +136,13 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) {
 	}
 }
 
-func Connect(ctx context.Context, ch chan Response, channels, symbols []string, l *log.Logger) error {
-	if l == nil {
-		l = log.New(os.Stdout, "bitflyer websocket", log.Llongfile)
+func Connect(ctx context.Context, ch chan Response, channels, symbols []string, cfg *Configuration) error {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "bitflyer websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(USE1, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -162,16 +161,22 @@ RECONNECT:
 			var res Response
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
 				return fmt.Errorf("can't receive error: %v", err)
 			}
 
+			result, err := jsonparser.GetBoolean(msg, "result")
+			if result {
+				cfg.l.Printf("[SUCCESS]: connection established")
+				continue
+			}
+
 			name, err := jsonparser.GetString(msg, "params", "channel")
 			if err != nil {
-				l.Printf("[ERROR]: channel error: %+v", err)
+				cfg.l.Printf("[ERROR]: channel error: %+v", err)
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -180,7 +185,7 @@ RECONNECT:
 
 			data, _, _, err := jsonparser.Get(msg, "params", "message")
 			if err != nil {
-				l.Printf("[ERROR]: message error: %+v", err)
+				cfg.l.Printf("[ERROR]: message error: %+v", err)
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -194,28 +199,28 @@ RECONNECT:
 				w.ProductCode = types.ProductCode(name[len("lightning_board_snapshot_"):])
 				w.Types = ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
-					l.Printf("[WARN]: cant unmarshal board %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal board %+v", err)
 				}
 
 			case strings.HasPrefix(name, "lightning_board_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_"):])
 				w.Types = DIFF_ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
-					l.Printf("[WARN]: cant unmarshal diff board %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal diff board %+v", err)
 				}
 
 			case strings.HasPrefix(name, "lightning_ticker_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_ticker_"):])
 				w.Types = TICKER
 				if err := json.Unmarshal(data, &w.Ticker); err != nil {
-					l.Printf("[WARN]: cant unmarshal ticker %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 				}
 
 			case strings.HasPrefix(name, "lightning_executions_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_executions_"):])
 				w.Types = TRADES
 				if err := json.Unmarshal(data, &w.Trades); err != nil {
-					l.Printf("[WARN]: cant unmarshal executions %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal executions %+v", err)
 				}
 
 			default:
@@ -287,13 +292,13 @@ func requestsForPrivate(conn *websocket.Conn, key, secret string) error {
 	return nil
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, l *log.Logger) {
-	if l == nil {
-		l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
+func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, cfg *Configuration) {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(USE1, nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -317,7 +322,7 @@ RECONNECT:
 			var res Response
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
@@ -326,7 +331,7 @@ RECONNECT:
 
 			name, err := jsonparser.GetString(msg, "params", "channel")
 			if err != nil {
-				l.Printf("[ERROR]: channel error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: channel error: %+v", string(msg))
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -335,7 +340,7 @@ RECONNECT:
 
 			data, _, _, err := jsonparser.Get(msg, "params", "message")
 			if err != nil {
-				l.Printf("[ERROR]: message error: %+v", string(msg))
+				cfg.l.Printf("[ERROR]: message error: %+v", string(msg))
 				res.Types = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
@@ -348,14 +353,14 @@ RECONNECT:
 			case strings.HasPrefix(name, "child_order_events"):
 				w.Types = CHILD_ORDERS
 				if err := json.Unmarshal(data, &w.ChildOrderEvent); err != nil {
-					l.Printf("[WARN]: cant unmarshal child_order_events %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal child_order_events %+v", err)
 					continue
 				}
 
 			case strings.HasPrefix(name, "parent_order_events"):
 				w.Types = PARENT_ORDERS
 				if err := json.Unmarshal(data, &w.ParentOrderEvent); err != nil {
-					l.Printf("[WARN]: cant unmarshal parent_order_events %+v", err)
+					cfg.l.Printf("[WARN]: cant unmarshal parent_order_events %+v", err)
 					continue
 				}
 

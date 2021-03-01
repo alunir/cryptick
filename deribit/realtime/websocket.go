@@ -100,24 +100,24 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
 	return nil
 }
 
-func Connect(ctx context.Context, ch chan Response, channels, symbols []string, l *log.Logger) error {
-	if l == nil {
-		l = log.New(os.Stdout, "deribit websocket", log.Llongfile)
+func Connect(ctx context.Context, ch chan Response, channels, symbols []string, cfg *Configuration) error {
+	if cfg.l == nil {
+		cfg.l = log.New(os.Stdout, "deribit websocket", log.Llongfile)
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial("wss://www.deribit.com/ws/api/v2/", nil)
+	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
 	if err != nil {
-		l.Fatal(err)
+		cfg.l.Fatal(err)
 	}
 
 	requestId = 1
 	if err := setHeartbeat(conn); err != nil {
-		l.Fatal(err)
+		cfg.l.Fatal(err)
 	}
 
 	if err := subscribe(conn, channels, symbols); err != nil {
-		l.Fatal(err)
+		cfg.l.Fatal(err)
 	}
 
 	var eg errgroup.Group
@@ -129,7 +129,7 @@ RECONNECT:
 			var res Response
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
-				l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
@@ -138,7 +138,7 @@ RECONNECT:
 
 			result, err := jsonparser.GetString(msg, "result")
 			if result == "ok" {
-				l.Printf("[SUCCESS]: %+v", string(msg))
+				cfg.l.Printf("[SUCCESS]: %+v", string(msg))
 				continue
 			}
 
@@ -148,7 +148,7 @@ RECONNECT:
 				channelFull, err := jsonparser.GetString(msg, "params", "channel")
 				if err != nil {
 					err = fmt.Errorf("[ERROR]: channel err: %v %s", err, string(msg))
-					l.Println(err)
+					cfg.l.Println(err)
 					res.Type = ERROR
 					res.Results = err
 					ch <- res
@@ -158,7 +158,7 @@ RECONNECT:
 				data, _, _, err := jsonparser.Get(msg, "params", "data")
 				if err != nil {
 					err = fmt.Errorf("[ERROR]: data err: %v %s", err, string(msg))
-					l.Println(err)
+					cfg.l.Println(err)
 					res.Type = ERROR
 					res.Results = err
 					ch <- res
@@ -170,19 +170,19 @@ RECONNECT:
 				case DeribitChannelQuote:
 					res.Type = TICKER
 					if err := json.Unmarshal(data, &res.Ticker); err != nil {
-						l.Printf("[WARN]: cant unmarshal ticker %+v", err)
+						cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 						continue
 					}
 				case DeribitChannelTrade:
 					res.Type = TRADES
 					if err := json.Unmarshal(data, &res.Trades); err != nil {
-						l.Printf("[WARN]: cant unmarshal trades %+v", err)
+						cfg.l.Printf("[WARN]: cant unmarshal trades %+v", err)
 						continue
 					}
 				case DeribitChannelBook:
 					res.Type = ORDERBOOK
 					if err := json.Unmarshal(data, &res.Orderbook); err != nil {
-						l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
+						cfg.l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
 						continue
 					}
 				default:
@@ -192,7 +192,7 @@ RECONNECT:
 			case DeribitMethodHeartbeat:
 				requestId, err = jsonparser.GetInt(msg, "id")
 				if err != nil {
-					l.Printf("[ERROR]: id error: %+v", err)
+					cfg.l.Printf("[ERROR]: id error: %+v", err)
 					res.Type = ERROR
 					res.Results = fmt.Errorf("%v", err)
 					ch <- res
@@ -202,7 +202,7 @@ RECONNECT:
 					panic(err)
 				}
 			default:
-				l.Println(string(msg))
+				cfg.l.Println(string(msg))
 				continue
 				// l.Printf("[ERROR]: method error: %+v", string(msg))
 				// res.Type = ERROR

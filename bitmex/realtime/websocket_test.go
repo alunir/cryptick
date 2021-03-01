@@ -13,7 +13,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{realtime.BitmexWSQuote}, []string{"XBTUSD"}, nil)
+	go realtime.Connect(ctx, ch, []string{realtime.BitmexWSQuote}, []string{"XBTUSD"}, realtime.Config())
 
 	for {
 		select {

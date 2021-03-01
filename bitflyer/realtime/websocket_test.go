@@ -13,7 +13,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"lightning_ticker"}, []string{"FX_BTC_JPY"}, nil)
+	go realtime.Connect(ctx, ch, []string{"lightning_ticker"}, []string{"FX_BTC_JPY"}, realtime.Config())
 
 	for {
 		select {
