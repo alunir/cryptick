@@ -29,6 +29,10 @@ const (
 	FILLS
 )
 
+var (
+	orderBookLocals = make(map[string]*markets.OrderBookLocal)
+)
+
 type request struct {
 	Op      string `json:"op"`
 	Channel string `json:"channel"`
@@ -47,7 +51,7 @@ type Response struct {
 
 	Ticker    markets.Ticker
 	Trades    []markets.Trade
-	Orderbook markets.Orderbook
+	Orderbook markets.OrderBook
 
 	Orders orders.Order
 	Fills  fills.Fill
@@ -127,6 +131,9 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
+
+	var obl *markets.OrderBookLocal
+	var ok bool
 
 RECONNECT:
 	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
@@ -217,14 +224,32 @@ RECONNECT:
 				}
 
 			case "orderbook":
-				// MEMO: 'Action' determines the received data as a snapshot or a diff-snapshot.
-				// see; https://docs.ftx.com/#orderbooks
-				res.Type = ORDERBOOK
-				if err := json.Unmarshal(data, &res.Orderbook); err != nil {
+				var obr *markets.OrderBookRaw
+				if err := json.Unmarshal(data, &obr); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
 					continue
 				}
 
+				// MEMO: 'Action' determines the received data as a snapshot or a diff-snapshot.
+				// see; https://docs.ftx.com/#orderbooks
+				switch obr.Action {
+				case "partial":
+					obl, ok = orderBookLocals[market]
+					if !ok {
+						obl = markets.NewOrderBookLocal()
+						orderBookLocals[market] = obl
+					}
+					obl.LoadSnapshot(obr)
+				case "update":
+					obl, ok = orderBookLocals[market]
+					if !ok {
+						continue
+					}
+					obl.Update(obr)
+				}
+
+				res.Type = ORDERBOOK
+				res.Orderbook = obl.GetOrderBook()
 			default:
 				res.Type = UNDEFINED
 				res.Results = fmt.Errorf("%v", string(msg))
