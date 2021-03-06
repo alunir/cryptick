@@ -32,4 +32,27 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-// TODO: TestConnectPrivate after implemented
+func TestConnectForPrivate(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan realtime.Response)
+	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"order", "execution", "position"}, realtime.Config())
+
+	for {
+		select {
+		case v := <-ch:
+			switch v.Type {
+			case realtime.ORDERS:
+				fmt.Printf("ORDERS(%d) %+v\n", v.Type, v.Orders)
+			case realtime.FILLS:
+				fmt.Printf("FILLS(%d) %+v\n", v.Type, v.Fills)
+			case realtime.POSITIONS:
+				fmt.Printf("POSITIONS(%d) %+v\n", v.Type, v.Positions)
+
+			case realtime.UNDEFINED:
+				fmt.Printf("UNDEFINED(%d) %s\n", v.Type, v.Results.Error())
+			}
+		}
+	}
+}

@@ -62,9 +62,9 @@ type Response struct {
 	Ticker    markets.Ticker
 	Trades    []markets.Trade
 	Orderbook markets.OrderBook
-	Orders    orders.Order
-	Fills     fills.Execution
-	Positions fills.Position
+	Orders    []orders.Order
+	Fills     []fills.Execution
+	Positions []fills.Position
 	Results   error
 }
 
@@ -73,6 +73,10 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 	var b *bytes.Buffer
 	var s string
 	for i := range channels {
+		if symbols == nil {
+			message = append(message, channels[i])
+			continue
+		}
 		b = new(bytes.Buffer)
 		for _, symbol := range symbols {
 			b.WriteString(symbol)
@@ -93,6 +97,10 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
+		if symbols == nil {
+			message = append(message, channels[i])
+			continue
+		}
 		for j := range symbols {
 			message = append(message, fmt.Sprintf("%v.%v", channels[i], symbols[j]))
 		}
