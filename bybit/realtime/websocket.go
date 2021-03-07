@@ -262,7 +262,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, cfg *Configuration) {
+func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
