@@ -8,12 +8,16 @@ import (
 	"github.com/alunir/cryptick/deribit/realtime"
 )
 
+var (
+	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+)
+
 func TestConnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"quote", "trades"}, []string{"BTC-PERPETUAL"}, realtime.Config())
+	go realtime.Connect(ctx, ch, []string{"quote", "trades"}, []string{"BTC-PERPETUAL"}, cfg)
 
 	for {
 		select {

@@ -8,12 +8,16 @@ import (
 	"github.com/alunir/cryptick/bybit/realtime"
 )
 
+var (
+	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+)
+
 func TestConnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"orderBookL2_25"}, []string{"ETHUSD"}, realtime.Config())
+	go realtime.Connect(ctx, ch, []string{"orderBookL2_25"}, []string{"ETHUSD"}, cfg)
 
 	for {
 		select {
@@ -37,7 +41,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"order", "execution", "position"}, realtime.Config())
+	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"order", "execution", "position"}, cfg)
 
 	for {
 		select {

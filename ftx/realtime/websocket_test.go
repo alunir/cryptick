@@ -8,12 +8,16 @@ import (
 	"github.com/alunir/cryptick/ftx/realtime"
 )
 
+var (
+	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+)
+
 func TestConnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"orderbook"}, []string{"ETH-PERP"}, realtime.Config())
+	go realtime.Connect(ctx, ch, []string{"orderbook"}, []string{"ETH-PERP"}, cfg)
 
 	for {
 		select {
@@ -44,7 +48,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"orders", "fills"}, nil)
+	go realtime.ConnectForPrivate(ctx, ch, []string{"orders", "fills"}, cfg)
 
 	for {
 		select {

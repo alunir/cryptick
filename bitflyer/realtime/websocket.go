@@ -262,6 +262,13 @@ RECONNECT:
 }
 
 func requestsForPrivate(conn *websocket.Conn, key, secret string) error {
+	if key == "" {
+		log.Fatal("Key should be specified")
+	}
+	if secret == "" {
+		log.Fatal("SecretKey should be specified")
+	}
+
 	now, nonce, sign := WsParamForPrivate(secret)
 	req := &request{
 		Jsonrpc: "2.0",
@@ -303,7 +310,7 @@ RECONNECT:
 		log.Fatal(err)
 	}
 
-	if err := requestsForPrivate(conn, key, secret); err != nil {
+	if err := requestsForPrivate(conn, cfg.key, cfg.secret); err != nil {
 		log.Fatalf("cant connect to private %v", err)
 	}
 

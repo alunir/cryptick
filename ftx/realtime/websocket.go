@@ -272,7 +272,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, key, secret string, channels []string, cfg *Configuration) {
+func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
@@ -284,7 +284,7 @@ RECONNECT:
 	}
 
 	// sign up
-	if err := signature(conn, key, secret, cfg.subaccount); err != nil {
+	if err := signature(conn, cfg.key, cfg.secret, cfg.subaccount); err != nil {
 		log.Fatal(err)
 	}
 
@@ -387,6 +387,13 @@ func signature(conn *websocket.Conn, key, secret string, subaccount []string) er
 	// sign would be d10b5a67a1a941ae9463a60b285ae845cdeac1b11edc7da9977bef0228b96de9
 
 	// One websocket connection may be logged in to at most one user. If the connection is already authenticated, further attempts to log in will result in 400s.
+
+	if key == "" {
+		log.Fatal("Key should be specified")
+	}
+	if secret == "" {
+		log.Fatal("SecretKey should be specified")
+	}
 
 	msec := time.Now().UTC().UnixNano() / int64(time.Millisecond)
 

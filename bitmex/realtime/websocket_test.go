@@ -8,12 +8,16 @@ import (
 	"github.com/alunir/cryptick/bitmex/realtime"
 )
 
+var (
+	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+)
+
 func TestConnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{realtime.BitmexWSQuote}, []string{"XBTUSD"}, realtime.Config())
+	go realtime.Connect(ctx, ch, []string{realtime.BitmexWSQuote}, []string{"XBTUSD"}, cfg)
 
 	for {
 		select {
@@ -41,7 +45,7 @@ func TestConnect(t *testing.T) {
 // 	defer cancel()
 
 // 	ch := make(chan realtime.Response)
-// 	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"orders", "fills"}, nil)
+// 	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"orders", "fills"}, cfg)
 
 // 	for {
 // 		select {

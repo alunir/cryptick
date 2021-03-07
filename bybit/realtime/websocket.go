@@ -274,7 +274,7 @@ RECONNECT:
 	}
 
 	// sign up
-	if err := signature(conn, key, secret); err != nil {
+	if err := signature(conn, cfg.key, cfg.secret); err != nil {
 		log.Fatal(err)
 	}
 
@@ -358,6 +358,13 @@ RECONNECT:
 }
 
 func signature(conn *websocket.Conn, key, secret string) error {
+	if key == "" {
+		log.Fatal("Key should be specified")
+	}
+	if secret == "" {
+		log.Fatal("SecretKey should be specified")
+	}
+
 	expires := time.Now().Unix()*1000 + 10000
 	req := fmt.Sprintf("GET/realtime%d", expires)
 	sig := hmac.New(sha256.New, []byte(secret))

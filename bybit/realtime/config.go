@@ -38,8 +38,10 @@ var (
 )
 
 type Configuration struct {
-	l   *log.Logger
-	url string
+	l      *log.Logger
+	url    string
+	key    string
+	secret string
 }
 
 type Option func(*Configuration)
@@ -50,10 +52,24 @@ func EndpointOption(e Endpoint) Option {
 	}
 }
 
+func Key(key string) Option {
+	return func(c *Configuration) {
+		c.key = key
+	}
+}
+
+func SecretKey(secret string) Option {
+	return func(c *Configuration) {
+		c.secret = secret
+	}
+}
+
 func Config(ops ...Option) *Configuration {
 	cfg := Configuration{
-		l:   nil,
-		url: PERPETUAL_MAINNET1.url,
+		l:      nil,
+		url:    PERPETUAL_MAINNET1.url,
+		key:    "",
+		secret: "",
 	}
 	for _, option := range ops {
 		option(&cfg)

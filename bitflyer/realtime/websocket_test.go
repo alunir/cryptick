@@ -8,12 +8,16 @@ import (
 	"github.com/alunir/cryptick/bitflyer/realtime"
 )
 
+var (
+	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+)
+
 func TestConnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"lightning_ticker"}, []string{"FX_BTC_JPY"}, realtime.Config())
+	go realtime.Connect(ctx, ch, []string{"lightning_ticker"}, []string{"FX_BTC_JPY"}, cfg)
 
 	for {
 		select {
@@ -38,7 +42,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"child_order_events", "parent_order_events"}, nil)
+	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"child_order_events", "parent_order_events"}, cfg)
 
 	for {
 		select {
