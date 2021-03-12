@@ -301,7 +301,7 @@ func requestsForPrivate(conn *websocket.Conn, key, secret string) error {
 
 func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
 	if cfg.l == nil {
-		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
+		cfg.l = log.New(os.Stdout, "bitflyer websocket", log.Llongfile)
 	}
 
 RECONNECT:
