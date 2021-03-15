@@ -59,9 +59,9 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		suffix := ""
-		if channels[i] == "trades" {
+		if channels[i] == DeribitChannelTrade {
 			suffix = ".raw"
-		} else if channels[i] == "book" {
+		} else if channels[i] == DeribitChannelBook {
 			suffix = ".none.1.100ms"
 		}
 		for j := range symbols {

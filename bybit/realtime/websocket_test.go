@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"orderBookL2_25"}, []string{"ETHUSD"}, cfg)
+	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"ETHUSD", "XRPUSD"}, cfg)
 
 	for {
 		select {
@@ -41,7 +41,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"order", "execution", "position"}, cfg)
+	go realtime.ConnectForPrivate(ctx, ch, []string{"order", "execution", "position"}, cfg)
 
 	for {
 		select {
