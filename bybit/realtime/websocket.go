@@ -156,6 +156,11 @@ RECONNECT:
 				if pong == "pong" {
 					continue
 				}
+				success, _ := jsonparser.GetBoolean(msg, "success")
+				if success {
+					cfg.l.Printf("[SUCCESS]: connection established")
+					continue
+				}
 			}
 
 			channel, err := jsonparser.GetString(msg, "topic")
