@@ -24,6 +24,7 @@ const (
 
 const (
 	UNDEFINED = iota
+	HEARTBEAT
 	ERROR
 	TICKER
 	TRADES
@@ -190,25 +191,18 @@ RECONNECT:
 					res.Results = fmt.Errorf("%v", string(msg))
 				}
 			case DeribitMethodHeartbeat:
-				requestId, err = jsonparser.GetInt(msg, "id")
+				err := testRequest(conn)
 				if err != nil {
-					cfg.l.Printf("[ERROR]: id error: %+v", err)
+					cfg.l.Printf("[ERROR]: error: %+v", err)
 					res.Type = ERROR
 					res.Results = fmt.Errorf("%v", err)
 					ch <- res
-					return fmt.Errorf("can't receive error: %v", err)
+					return fmt.Errorf("can't send heartbeat error: %v", err)
 				}
-				if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"jsonrpc": "2.0", "method": "public/test", "id": %v, "params": {}}`, requestId))); err != nil {
-					panic(err)
-				}
+				res.Type = HEARTBEAT
 			default:
-				cfg.l.Println(string(msg))
+				cfg.l.Printf("[NOTIFY]: %+v", string(msg))
 				continue
-				// l.Printf("[ERROR]: method error: %+v", string(msg))
-				// res.Type = ERROR
-				// res.Results = fmt.Errorf("%v", err)
-				// ch <- res
-				// return fmt.Errorf("can't receive error: %v", err)
 			}
 
 			select { // 外部からの停止
@@ -230,6 +224,13 @@ RECONNECT:
 
 func setHeartbeat(conn *websocket.Conn) error {
 	if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"jsonrpc": "2.0", "method": "public/set_heartbeat", "id": %v, "params": {"interval": 60}}`, requestId))); err != nil {
+		return fmt.Errorf("Failed to send heartbeat")
+	}
+	return nil
+}
+
+func testRequest(conn *websocket.Conn) error {
+	if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"method": "public/test", "params": {}}`)); err != nil {
 		return fmt.Errorf("Failed to send heartbeat")
 	}
 	return nil

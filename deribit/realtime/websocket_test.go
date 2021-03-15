@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"quote", "trades"}, []string{"BTC-PERPETUAL"}, cfg)
+	go realtime.Connect(ctx, ch, []string{realtime.DeribitChannelQuote}, []string{"BTC-PERPETUAL"}, cfg)
 
 	for {
 		select {
@@ -28,7 +28,7 @@ func TestConnect(t *testing.T) {
 			case realtime.TRADES:
 				fmt.Printf("%+v\n", v.Trades)
 			case realtime.ORDERBOOK:
-				fmt.Printf("%+v\n", v.Orderbook)
+				fmt.Printf("%+v\n", v.Orderbook) // Bids:[[60250.5 340]] Asks:[[60251 100]]
 			case realtime.UNDEFINED:
 				fmt.Printf("%s\n", v.Results.Error())
 			}
