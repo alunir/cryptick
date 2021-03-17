@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	cfg = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+	cfg      = realtime.Config(realtime.Key(""), realtime.SecretKey(""))
+	cfg_usdt = realtime.Config(realtime.Key(""), realtime.SecretKey(""), realtime.EndpointOption(realtime.USDT_MAINNET1_PUBLIC))
 )
 
 func TestConnect(t *testing.T) {
@@ -17,7 +18,32 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"ETHUSD", "XRPUSD"}, cfg)
+	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"ETHUSD", "BTCUSD"}, cfg)
+
+	for {
+		select {
+		case v := <-ch:
+			switch v.Type {
+			case realtime.TICKER:
+				fmt.Printf("%s	%+v\n", v.Symbol, v.Ticker)
+			case realtime.TRADES:
+				fmt.Printf("%s	%+v\n", v.Symbol, v.Trades)
+			case realtime.ORDERBOOK:
+				// fmt.Printf("%s	%+v\n", v.Symbol, v.Orderbook)
+			case realtime.UNDEFINED:
+				fmt.Printf("%s	%s\n", v.Symbol, v.Results.Error())
+			}
+		}
+	}
+}
+
+// Broken
+func TestConnectUSDT(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ch := make(chan realtime.Response)
+	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"ETHUSDT", "BTCUSDT"}, cfg_usdt)
 
 	for {
 		select {
