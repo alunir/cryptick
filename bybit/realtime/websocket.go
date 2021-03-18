@@ -296,7 +296,7 @@ RECONNECT:
 
 		for {
 			var res Response
-			messageType, msg, err := conn.ReadMessage()
+			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
@@ -305,11 +305,13 @@ RECONNECT:
 				return fmt.Errorf("can't receive error: %v", err)
 			}
 
-			if messageType == websocket.TextMessage {
-				pong, _ := jsonparser.GetString(msg, "ret_msg")
-				if pong == "pong" {
-					continue
-				}
+			if pong, _ := jsonparser.GetString(msg, "ret_msg"); pong == "pong" {
+				continue
+			}
+
+			if success, _ := jsonparser.GetBoolean(msg, "success"); success {
+				cfg.l.Printf("[SUCCESS]: private connection established")
+				continue
 			}
 
 			channel, err := jsonparser.GetString(msg, "topic")
