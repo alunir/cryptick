@@ -201,6 +201,7 @@ RECONNECT:
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal board %+v", err)
 				}
+				w.Orderbook.Sort()
 
 			case strings.HasPrefix(name, "lightning_board_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_"):])
@@ -208,6 +209,7 @@ RECONNECT:
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal diff board %+v", err)
 				}
+				w.Orderbook.Sort()
 
 			case strings.HasPrefix(name, "lightning_ticker_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_ticker_"):])
