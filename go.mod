@@ -6,6 +6,7 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/goccy/go-json v0.9.10
 	github.com/json-iterator/go v1.1.10
+	github.com/tk42/victolinux v0.0.0-20211119083550-c0d1732b0e66
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	nhooyr.io/websocket v1.8.7
 )
