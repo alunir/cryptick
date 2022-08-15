@@ -5,7 +5,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -13,12 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/alunir/cryptick/bitflyer/types"
 	"github.com/alunir/cryptick/bitflyer/types/fills"
 	"github.com/alunir/cryptick/bitflyer/types/markets"
 	"github.com/buger/jsonparser"
-	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -65,7 +66,7 @@ type Response struct {
 	Results error
 }
 
-func subscribe(conn *websocket.Conn, channels, symbols []string) (err error) {
+func subscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) (err error) {
 	var requests []request
 	if symbols != nil {
 		for i := range channels {
@@ -96,7 +97,9 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) (err error) {
 	fmt.Printf("%+v\n", requests)
 
 	for i := range requests {
-		if err := conn.WriteJSON(requests[i]); err != nil {
+		if val, err := json.Marshal(requests[i]); err != nil {
+			return err
+		} else if err := conn.Write(ctx, websocket.MessageBinary, val); err != nil {
 			return err
 		}
 	}
@@ -104,11 +107,11 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) (err error) {
 	return nil
 }
 
-func unsubscribe(conn *websocket.Conn, channels, symbols []string) {
+func unsubscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) {
 	if symbols != nil {
 		for i := range channels {
 			for j := range symbols {
-				if err := conn.WriteJSON(&request{
+				if val, err := json.Marshal(request{
 					Jsonrpc: "2.0",
 					Method:  "unsubscribe",
 					Params: map[string]interface{}{
@@ -116,13 +119,15 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) {
 					},
 					ID: 1,
 				}); err != nil {
-					fmt.Printf("%+v\n", err)
+					log.Println(err)
+				} else if err := conn.Write(ctx, websocket.MessageBinary, val); err != nil {
+					log.Println(err)
 				}
 			}
 		}
 	} else {
 		for i := range channels {
-			if err := conn.WriteJSON(&request{
+			if val, err := json.Marshal(request{
 				Jsonrpc: "2.0",
 				Method:  "unsubscribe",
 				Params: map[string]interface{}{
@@ -130,7 +135,9 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) {
 				},
 				ID: 1,
 			}); err != nil {
-				fmt.Printf("%+v\n", err)
+				log.Println(err)
+			} else if err := conn.Write(ctx, websocket.MessageBinary, val); err != nil {
+				log.Println(err)
 			}
 		}
 	}
@@ -142,24 +149,24 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = subscribe(conn, channels, symbols)
+	err = subscribe(ctx, conn, channels, symbols)
 	if err != nil {
 		log.Fatalf("disconnect %v", err)
 	}
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, symbols)
+		defer conn.Close(websocket.StatusNormalClosure, "Closed nomally")
+		defer unsubscribe(ctx, conn, channels, symbols)
 
 		for {
 			var res Response
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Types = ERROR
@@ -247,7 +254,7 @@ RECONNECT:
 
 	// 明示的 Unsubscribed
 	// context.cancel()された場合は
-	unsubscribe(conn, channels, symbols)
+	unsubscribe(ctx, conn, channels, symbols)
 
 	// Maintenanceならば待機
 	// Maintenanceでなければ、即再接続
@@ -263,7 +270,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func requestsForPrivate(conn *websocket.Conn, key, secret string) error {
+func requestsForPrivate(ctx context.Context, conn *websocket.Conn, key, secret string) error {
 	if key == "" {
 		log.Fatal("Key should be specified")
 	}
@@ -284,11 +291,13 @@ func requestsForPrivate(conn *websocket.Conn, key, secret string) error {
 		ID: now,
 	}
 
-	if err := conn.WriteJSON(req); err != nil {
+	if val, err := json.Marshal(req); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 
-	_, msg, err := conn.ReadMessage()
+	_, msg, err := conn.Read(ctx)
 	if err != nil {
 		return err
 	}
@@ -307,29 +316,29 @@ func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string,
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := requestsForPrivate(conn, cfg.key, cfg.secret); err != nil {
+	if err := requestsForPrivate(ctx, conn, cfg.key, cfg.secret); err != nil {
 		log.Fatalf("cant connect to private %v", err)
 	}
 
-	err = subscribe(conn, channels, nil)
+	err = subscribe(ctx, conn, channels, nil)
 	if err != nil {
 		log.Fatalf("disconnect %v", err)
 	}
-	defer unsubscribe(conn, channels, nil)
+	defer unsubscribe(ctx, conn, channels, nil)
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, nil)
+		defer conn.Close(websocket.StatusNormalClosure, "Internal Error")
+		defer unsubscribe(ctx, conn, channels, nil)
 
 		for {
 			var res Response
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Types = ERROR

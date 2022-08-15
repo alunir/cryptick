@@ -6,19 +6,20 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/alunir/cryptick/bybit/types/fills"
 	"github.com/alunir/cryptick/bybit/types/markets"
 	"github.com/alunir/cryptick/bybit/types/orders"
 	"github.com/buger/jsonparser"
-	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -68,7 +69,7 @@ type Response struct {
 	Results   error
 }
 
-func subscribe(conn *websocket.Conn, channels, symbols []string) error {
+func subscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	var b *bytes.Buffer
 	var s string
@@ -85,16 +86,18 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 		s = b.String()
 		message = append(message, fmt.Sprintf("%v.%v", channels[i], s[:len(s)-1]))
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Op:   "subscribe",
 		Args: message,
 	}); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 	return nil
 }
 
-func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
+func unsubscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		if symbols == nil {
@@ -105,10 +108,12 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
 			message = append(message, fmt.Sprintf("%v.%v", channels[i], symbols[j]))
 		}
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Op:   "unsubscribe",
 		Args: message,
 	}); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 	return nil
@@ -124,25 +129,25 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 	var symbol string
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		log.Fatal(err)
+		cfg.l.Fatal(err)
 	}
 
-	if err := subscribe(conn, channels, symbols); err != nil {
-		log.Fatal(err)
+	if err := subscribe(ctx, conn, channels, symbols); err != nil {
+		cfg.l.Fatal(err)
 	}
 
-	go ping(conn)
+	go ping(ctx, conn)
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, symbols)
+		defer conn.Close(websocket.StatusNormalClosure, "normal closure")
+		defer unsubscribe(ctx, conn, channels, symbols)
 
 		for {
 			var res Response
-			messageType, msg, err := conn.ReadMessage()
+			messageType, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
@@ -151,7 +156,7 @@ RECONNECT:
 				return fmt.Errorf("can't receive error: %v", err)
 			}
 
-			if messageType == websocket.TextMessage {
+			if messageType == websocket.MessageText {
 				pong, _ := jsonparser.GetString(msg, "ret_msg")
 				if pong == "pong" {
 					continue
@@ -261,7 +266,7 @@ RECONNECT:
 	})
 
 	if err := eg.Wait(); err != nil {
-		log.Printf("%v", err)
+		cfg.l.Printf("%v", err)
 	}
 
 	goto RECONNECT
@@ -273,30 +278,30 @@ func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string,
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// sign up
-	if err := signature(conn, cfg.key, cfg.secret); err != nil {
+	if err := signature(ctx, conn, cfg.key, cfg.secret); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := subscribe(conn, channels, nil); err != nil {
+	if err := subscribe(ctx, conn, channels, nil); err != nil {
 		log.Fatal(err)
 	}
 
-	go ping(conn)
+	go ping(ctx, conn)
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, nil)
+		defer conn.Close(websocket.StatusNormalClosure, "normal closure")
+		defer unsubscribe(ctx, conn, channels, nil)
 
 		for {
 			var res Response
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
@@ -364,7 +369,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func signature(conn *websocket.Conn, key, secret string) error {
+func signature(ctx context.Context, conn *websocket.Conn, key, secret string) error {
 	if key == "" {
 		log.Fatal("Key should be specified")
 	}
@@ -378,7 +383,7 @@ func signature(conn *websocket.Conn, key, secret string) error {
 	sig.Write([]byte(req))
 	signature := hex.EncodeToString(sig.Sum(nil))
 
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Op: "auth",
 		Args: []interface{}{
 			key,
@@ -388,19 +393,21 @@ func signature(conn *websocket.Conn, key, secret string) error {
 		},
 	}); err != nil {
 		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func ping(conn *websocket.Conn) (err error) {
+func ping(ctx context.Context, conn *websocket.Conn) (err error) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"op":"ping"}`)); err != nil {
+			if err := conn.Write(ctx, websocket.MessageText, []byte(`{"op":"ping"}`)); err != nil {
 				goto EXIT
 			}
 		}

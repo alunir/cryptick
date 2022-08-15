@@ -3,11 +3,9 @@ package types
 import (
 	"strings"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+// var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	BUY    = "buy"

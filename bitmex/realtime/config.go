@@ -35,7 +35,7 @@ func Config(ops ...Option) *Configuration {
 	cfg := Configuration{
 		l:      nil,
 		isTest: false,
-		url:    "wss://www.bitmex.com/realtime",
+		url:    "wss://ws.bitmex.com/realtime",
 		key:    "",
 		secret: "",
 	}

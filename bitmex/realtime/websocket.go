@@ -2,16 +2,17 @@ package realtime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/goccy/go-json"
+
 	"github.com/alunir/cryptick/bitmex/types/markets"
 	"github.com/buger/jsonparser"
-	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -61,33 +62,37 @@ type Response struct {
 	Results error
 }
 
-func subscribe(conn *websocket.Conn, channels, symbols []string) error {
+func subscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		for j := range symbols {
 			message = append(message, fmt.Sprintf("%v:%v", channels[i], symbols[j]))
 		}
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Op:   "subscribe",
 		Args: message,
 	}); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 	return nil
 }
 
-func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
+func unsubscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		for j := range symbols {
 			message = append(message, fmt.Sprintf("%v:%v", channels[i], symbols[j]))
 		}
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Op:   "unsubscribe",
 		Args: message,
 	}); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 	return nil
@@ -99,34 +104,36 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, &websocket.DialOptions{
+		CompressionMode: websocket.CompressionDisabled,
+	})
 	if err != nil {
-		log.Fatal(err)
+		cfg.l.Fatal(err)
 	}
 
-	if err := subscribe(conn, channels, symbols); err != nil {
-		log.Fatal(err)
+	if err := subscribe(ctx, conn, channels, symbols); err != nil {
+		cfg.l.Fatal(err)
 	}
 
-	go ping(conn)
+	go ping(ctx, conn)
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, symbols)
+		defer conn.Close(websocket.StatusNormalClosure, "Normal closure")
+		defer unsubscribe(ctx, conn, channels, symbols)
 
 		for {
 			var res Response
-			messageType, msg, err := conn.ReadMessage()
+			messageType, msg, err := conn.Read(ctx)
 			if err != nil {
-				cfg.l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
 				return fmt.Errorf("can't receive error: %v", err)
 			}
 
-			if messageType == websocket.TextMessage {
+			if messageType == websocket.MessageText {
 				if string(msg) == "pong" {
 					continue
 				}
@@ -200,20 +207,20 @@ RECONNECT:
 	})
 
 	if err := eg.Wait(); err != nil {
-		log.Printf("%v", err)
+		cfg.l.Printf("%v", err)
 	}
 
 	goto RECONNECT
 }
 
-func ping(conn *websocket.Conn) (err error) {
+func ping(ctx context.Context, conn *websocket.Conn) (err error) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := conn.WriteMessage(websocket.TextMessage, []byte("ping")); err != nil {
+			if err := conn.Write(ctx, websocket.MessageText, []byte("ping")); err != nil {
 				goto EXIT
 			}
 		}

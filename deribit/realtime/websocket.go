@@ -10,8 +10,8 @@ import (
 
 	"github.com/alunir/cryptick/deribit/types/markets"
 	"github.com/buger/jsonparser"
-	"github.com/gorilla/websocket"
 	"golang.org/x/sync/errgroup"
+	"nhooyr.io/websocket"
 )
 
 const (
@@ -55,7 +55,7 @@ type Response struct {
 	Results error
 }
 
-func subscribe(conn *websocket.Conn, channels, symbols []string) error {
+func subscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		suffix := ""
@@ -68,7 +68,7 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 			message = append(message, fmt.Sprintf("%v.%v%v", channels[i], symbols[j], suffix))
 		}
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Version: "2.0",
 		Method:  "public/subscribe",
 		Id:      requestId,
@@ -77,18 +77,20 @@ func subscribe(conn *websocket.Conn, channels, symbols []string) error {
 		},
 	}); err != nil {
 		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
+		return err
 	}
 	return nil
 }
 
-func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
+func unsubscribe(ctx context.Context, conn *websocket.Conn, channels, symbols []string) error {
 	var message []interface{}
 	for i := range channels {
 		for j := range symbols {
 			message = append(message, fmt.Sprintf("%v.%v", channels[i], symbols[j]))
 		}
 	}
-	if err := conn.WriteJSON(&request{
+	if val, err := json.Marshal(request{
 		Version: "2.0",
 		Method:  "public/unsubscribe",
 		Id:      requestId,
@@ -96,6 +98,8 @@ func unsubscribe(conn *websocket.Conn, channels, symbols []string) error {
 			"channels": message,
 		},
 	}); err != nil {
+		return err
+	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
 		return err
 	}
 	return nil
@@ -107,28 +111,28 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 	}
 
 RECONNECT:
-	conn, _, err := websocket.DefaultDialer.Dial(cfg.url, nil)
+	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
 		cfg.l.Fatal(err)
 	}
 
 	requestId = 1
-	if err := setHeartbeat(conn); err != nil {
+	if err := setHeartbeat(ctx, conn); err != nil {
 		cfg.l.Fatal(err)
 	}
 
-	if err := subscribe(conn, channels, symbols); err != nil {
+	if err := subscribe(ctx, conn, channels, symbols); err != nil {
 		cfg.l.Fatal(err)
 	}
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer conn.Close()
-		defer unsubscribe(conn, channels, symbols)
+		defer conn.Close(websocket.StatusNormalClosure, "normal closure")
+		defer unsubscribe(ctx, conn, channels, symbols)
 
 		for {
 			var res Response
-			_, msg, err := conn.ReadMessage()
+			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
 				res.Type = ERROR
@@ -191,7 +195,7 @@ RECONNECT:
 					res.Results = fmt.Errorf("%v", string(msg))
 				}
 			case DeribitMethodHeartbeat:
-				err := testRequest(conn)
+				err := testRequest(ctx, conn)
 				if err != nil {
 					cfg.l.Printf("[ERROR]: error: %+v", err)
 					res.Type = ERROR
@@ -222,15 +226,15 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func setHeartbeat(conn *websocket.Conn) error {
-	if err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"jsonrpc": "2.0", "method": "public/set_heartbeat", "id": %v, "params": {"interval": 60}}`, requestId))); err != nil {
+func setHeartbeat(ctx context.Context, conn *websocket.Conn) error {
+	if err := conn.Write(ctx, websocket.MessageText, []byte(fmt.Sprintf(`{"jsonrpc": "2.0", "method": "public/set_heartbeat", "id": %v, "params": {"interval": 60}}`, requestId))); err != nil {
 		return fmt.Errorf("Failed to send heartbeat")
 	}
 	return nil
 }
 
-func testRequest(conn *websocket.Conn) error {
-	if err := conn.WriteMessage(websocket.TextMessage, []byte(`{"method": "public/test", "params": {}}`)); err != nil {
+func testRequest(ctx context.Context, conn *websocket.Conn) error {
+	if err := conn.Write(ctx, websocket.MessageText, []byte(`{"method": "public/test", "params": {}}`)); err != nil {
 		return fmt.Errorf("Failed to send heartbeat")
 	}
 	return nil

@@ -42,7 +42,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, "", "", []string{"child_order_events", "parent_order_events"}, cfg)
+	go realtime.ConnectForPrivate(ctx, ch, []string{"child_order_events", "parent_order_events"}, cfg)
 
 	for {
 		select {
