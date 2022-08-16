@@ -49,7 +49,7 @@ func subscribe(ctx context.Context, conn *websocket.Conn, symbols []string) erro
 		Symbols: message,
 	}); err != nil {
 		return err
-	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
+	} else if err := conn.Write(ctx, websocket.MessageBinary, val); err != nil {
 		return err
 	}
 	return nil
@@ -62,7 +62,7 @@ func unsubscribe(ctx context.Context, conn *websocket.Conn, symbols []string) er
 		Symbols: message,
 	}); err != nil {
 		return err
-	} else if err := conn.Write(ctx, websocket.MessageText, val); err != nil {
+	} else if err := conn.Write(ctx, websocket.MessageBinary, val); err != nil {
 		return err
 	}
 	return nil
@@ -95,7 +95,7 @@ RECONNECT:
 			var res Response
 			messageType, msg, err := conn.Read(ctx)
 			if err != nil {
-				cfg.l.Printf("[ERROR]: msg error: %+v", err)
+				cfg.l.Printf("[ERROR]: msg error: %+v", string(msg))
 				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
