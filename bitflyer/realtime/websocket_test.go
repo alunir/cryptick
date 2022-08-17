@@ -22,7 +22,7 @@ func TestConnect(t *testing.T) {
 	for {
 		select {
 		case v := <-ch:
-			switch v.Types {
+			switch v.Type {
 			case realtime.TICKER:
 				fmt.Printf("%s	%+v\n", v.ProductCode, v.Ticker)
 			case realtime.TRADES:
@@ -47,11 +47,11 @@ func TestConnectForPrivate(t *testing.T) {
 	for {
 		select {
 		case v := <-ch:
-			switch v.Types {
+			switch v.Type {
 			case realtime.CHILD_ORDERS:
-				fmt.Printf("%d	%+v\n", v.Types, v.ChildOrderEvent)
+				fmt.Printf("%d	%+v\n", v.Type, v.ChildOrderEvent)
 			case realtime.PARENT_ORDERS:
-				fmt.Printf("%d	%+v\n", v.Types, v.ParentOrderEvent)
+				fmt.Printf("%d	%+v\n", v.Type, v.ParentOrderEvent)
 			case realtime.UNDEFINED:
 				fmt.Printf("UNDEFINED %s	%s\n", v.ProductCode, v.Results.Error())
 			}

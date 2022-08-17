@@ -26,10 +26,10 @@ const (
 	READDEADLINE time.Duration = 300
 )
 
-type Types int
+type Type int
 
 const (
-	ALL Types = iota
+	ALL Type = iota
 	TICKER
 	TRADES
 	ORDERBOOK
@@ -54,7 +54,7 @@ type requestForPrivate struct {
 }
 
 type Response struct {
-	Types       Types
+	Type        Type
 	ProductCode types.ProductCode
 	Orderbook   markets.Orderbook
 	Ticker      markets.Ticker
@@ -169,7 +169,7 @@ RECONNECT:
 			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
 				return fmt.Errorf("can't receive error: %v", err)
@@ -184,7 +184,7 @@ RECONNECT:
 			name, err := jsonparser.GetString(msg, "params", "channel")
 			if err != nil {
 				cfg.l.Printf("[ERROR]: channel error: %+v", err)
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
 				continue
@@ -193,7 +193,7 @@ RECONNECT:
 			data, _, _, err := jsonparser.Get(msg, "params", "message")
 			if err != nil {
 				cfg.l.Printf("[ERROR]: message error: %+v", err)
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
 				continue
@@ -204,7 +204,7 @@ RECONNECT:
 			switch {
 			case strings.HasPrefix(name, "lightning_board_snapshot_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_snapshot_"):])
-				w.Types = ORDERBOOK
+				w.Type = ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal board %+v", err)
 				}
@@ -212,7 +212,7 @@ RECONNECT:
 
 			case strings.HasPrefix(name, "lightning_board_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_"):])
-				w.Types = DIFF_ORDERBOOK
+				w.Type = DIFF_ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal diff board %+v", err)
 				}
@@ -220,20 +220,20 @@ RECONNECT:
 
 			case strings.HasPrefix(name, "lightning_ticker_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_ticker_"):])
-				w.Types = TICKER
+				w.Type = TICKER
 				if err := json.Unmarshal(data, &w.Ticker); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 				}
 
 			case strings.HasPrefix(name, "lightning_executions_"):
 				w.ProductCode = types.ProductCode(name[len("lightning_executions_"):])
-				w.Types = TRADES
+				w.Type = TRADES
 				if err := json.Unmarshal(data, &w.Trades); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal executions %+v", err)
 				}
 
 			default:
-				w.Types = UNDEFINED
+				w.Type = UNDEFINED
 				w.Results = fmt.Errorf("%v", string(msg))
 			}
 
@@ -341,7 +341,7 @@ RECONNECT:
 			_, msg, err := conn.Read(ctx)
 			if err != nil {
 				cfg.l.Printf("[ERROR]: msg error: %+v", err)
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", err)
 				ch <- res
 				return fmt.Errorf("can't receive error: %v", err)
@@ -350,7 +350,7 @@ RECONNECT:
 			name, err := jsonparser.GetString(msg, "params", "channel")
 			if err != nil {
 				cfg.l.Printf("[ERROR]: channel error: %+v", string(msg))
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
 				continue
@@ -359,7 +359,7 @@ RECONNECT:
 			data, _, _, err := jsonparser.Get(msg, "params", "message")
 			if err != nil {
 				cfg.l.Printf("[ERROR]: message error: %+v", string(msg))
-				res.Types = ERROR
+				res.Type = ERROR
 				res.Results = fmt.Errorf("%v", string(msg))
 				ch <- res
 				continue
@@ -369,21 +369,21 @@ RECONNECT:
 
 			switch {
 			case strings.HasPrefix(name, "child_order_events"):
-				w.Types = CHILD_ORDERS
+				w.Type = CHILD_ORDERS
 				if err := json.Unmarshal(data, &w.ChildOrderEvent); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal child_order_events %+v", err)
 					continue
 				}
 
 			case strings.HasPrefix(name, "parent_order_events"):
-				w.Types = PARENT_ORDERS
+				w.Type = PARENT_ORDERS
 				if err := json.Unmarshal(data, &w.ParentOrderEvent); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal parent_order_events %+v", err)
 					continue
 				}
 
 			default:
-				w.Types = UNDEFINED
+				w.Type = UNDEFINED
 				w.Results = fmt.Errorf("%v", string(msg))
 			}
 
