@@ -1,7 +1,7 @@
 package markets
 
 type UsQuote struct {
-	Ticker    string  `json:"s"`
+	Symbol    string  `json:"s"`
 	AskPrice  float64 `json:"ap"`
 	BidPrice  float64 `json:"bp"`
 	AskSize   float64 `json:"as"`

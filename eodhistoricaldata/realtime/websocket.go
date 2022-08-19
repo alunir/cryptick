@@ -10,7 +10,6 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/goccy/go-json"
 
-	"github.com/alunir/cryptick/eodhistoricaldata/types/fills"
 	"github.com/alunir/cryptick/eodhistoricaldata/types/markets"
 	"golang.org/x/sync/errgroup"
 	"nhooyr.io/websocket"
@@ -34,7 +33,7 @@ type request struct {
 type Response struct {
 	Type    int
 	Symbol  string
-	UsTrade fills.UsTrade
+	UsTrade markets.UsTrade
 	UsQuote markets.UsQuote
 	UsIndex markets.UsIndex
 	Forex   markets.Forex

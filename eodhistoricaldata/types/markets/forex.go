@@ -1,7 +1,7 @@
 package markets
 
 type Forex struct {
-	Ticker                string  `json:"s"`
+	Symbol                string  `json:"s"`
 	AskPrice              float64 `json:"a"`
 	BidPrice              float64 `json:"b"`
 	DailyChangePercentage string  `json:"dc"`

@@ -12,6 +12,7 @@ import (
 var (
 	cfg_forex  = realtime.Config(realtime.EndpointGroup(realtime.ENDPOINT_FOREX), realtime.Key(env.GetString("EODHISTORICALDATA_API_KEY", "")))
 	cfg_crypto = realtime.Config(realtime.EndpointGroup(realtime.ENDPOINT_CRYPTO), realtime.Key(env.GetString("EODHISTORICALDATA_API_KEY", "")))
+	cfg_index  = realtime.Config(realtime.EndpointGroup(realtime.ENDPOINT_US_INDICES), realtime.Key(env.GetString("EODHISTORICALDATA_API_KEY", "")))
 )
 
 func TestConnect(t *testing.T) {
@@ -20,7 +21,8 @@ func TestConnect(t *testing.T) {
 
 	ch := make(chan realtime.Response)
 	// go realtime.Connect(ctx, ch, []string{"ETH-USD", "BTC-USD"}, cfg_crypto)
-	go realtime.Connect(ctx, ch, []string{"USDJPY"}, cfg_forex)
+	// go realtime.Connect(ctx, ch, []string{"USDJPY"}, cfg_forex)
+	go realtime.Connect(ctx, ch, []string{"GSPC", "DJI", "NDX", "TOPX", "N225"}, cfg_index)
 
 	for {
 		select {
