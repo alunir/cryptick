@@ -3,7 +3,7 @@ package markets
 import "time"
 
 type Trade struct {
-	Timestamp       time.Time `json:"timestamp"`
+	Time            time.Time `json:"timestamp"`
 	Symbol          string    `json:"symbol"`
 	Side            string    `json:"side,omitempty"`
 	Size            float32   `json:"size,omitempty"`
