@@ -20,7 +20,7 @@ const (
 	ERROR
 	US_TRADE
 	US_QUOTE
-	US_INDICES
+	INDEX
 	FOREX
 	CRYPTO
 )
@@ -35,7 +35,7 @@ type Response struct {
 	Symbol  string
 	UsTrade markets.UsTrade
 	UsQuote markets.UsQuote
-	UsIndex markets.UsIndex
+	Index   markets.Index
 	Forex   markets.Forex
 	Crypto  markets.Crypto
 	Results error
@@ -129,9 +129,9 @@ RECONNECT:
 							cfg.l.Printf("[WARN]: cant unmarshal us_quote %+v", err)
 							continue
 						}
-					case GROUP_US_INDICES:
-						res.Type = US_INDICES
-						if err := json.Unmarshal(msg, &res.UsIndex); err != nil {
+					case GROUP_INDEX:
+						res.Type = INDEX
+						if err := json.Unmarshal(msg, &res.Index); err != nil {
 							cfg.l.Printf("[WARN]: cant unmarshal us_index %+v", err)
 							continue
 						}

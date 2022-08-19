@@ -1,6 +1,6 @@
 package markets
 
-type UsIndex struct {
+type Index struct {
 	Symbol                string  `json:"s"`
 	Price                 float64 `json:"p"`
 	DailyChangePercentage string  `json:"dc"`

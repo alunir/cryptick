@@ -9,11 +9,11 @@ const ENDPOINT_BASE = "wss://ws.eodhistoricaldata.com/ws/"
 type group string
 
 var (
-	GROUP_US_TRADE   = group("us")
-	GROUP_US_QUOTE   = group("us-quote")
-	GROUP_US_INDICES = group("index")
-	GROUP_FOREX      = group("forex")
-	GROUP_CRYPTO     = group("crypto")
+	GROUP_US_TRADE = group("us")
+	GROUP_US_QUOTE = group("us-quote")
+	GROUP_INDEX    = group("index")
+	GROUP_FOREX    = group("forex")
+	GROUP_CRYPTO   = group("crypto")
 )
 
 type Endpoint struct {
@@ -21,11 +21,11 @@ type Endpoint struct {
 }
 
 var (
-	ENDPOINT_US_TRADE   = Endpoint{GROUP_US_TRADE}
-	ENDPOINT_US_QUOTE   = Endpoint{GROUP_US_QUOTE}
-	ENDPOINT_US_INDICES = Endpoint{GROUP_US_INDICES}
-	ENDPOINT_FOREX      = Endpoint{GROUP_FOREX}
-	ENDPOINT_CRYPTO     = Endpoint{GROUP_CRYPTO}
+	ENDPOINT_US_TRADE = Endpoint{GROUP_US_TRADE}
+	ENDPOINT_US_QUOTE = Endpoint{GROUP_US_QUOTE}
+	ENDPOINT_INDEX    = Endpoint{GROUP_INDEX}
+	ENDPOINT_FOREX    = Endpoint{GROUP_FOREX}
+	ENDPOINT_CRYPTO   = Endpoint{GROUP_CRYPTO}
 )
 
 type Configuration struct {
