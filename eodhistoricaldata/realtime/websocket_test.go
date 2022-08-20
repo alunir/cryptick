@@ -41,7 +41,7 @@ func TestConnect(t *testing.T) {
 			case realtime.CRYPTO:
 				fmt.Println(v.Crypto)
 			case realtime.UNDEFINED:
-				fmt.Printf("%s	%s\n", v.Symbol, v.Results.Error())
+				fmt.Printf("%d	%s\n", v.Type, v.Results.Error())
 			}
 		}
 	}

@@ -32,7 +32,6 @@ type request struct {
 
 type Response struct {
 	Type    int
-	Symbol  string
 	UsTrade markets.UsTrade
 	UsQuote markets.UsQuote
 	Index   markets.Index
