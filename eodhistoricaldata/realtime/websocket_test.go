@@ -23,8 +23,8 @@ func TestConnect(t *testing.T) {
 	ch := make(chan realtime.Response)
 	// go realtime.Connect(ctx, ch, []string{"ETH-USD", "BTC-USD"}, cfg_crypto)
 	// go realtime.Connect(ctx, ch, []string{"USDJPY"}, cfg_forex)
-	// go realtime.Connect(ctx, ch, []string{"GSPC", "DJI", "NDX", "TOPX", "N225"}, cfg_index)
-	go realtime.Connect(ctx, ch, []string{"AMZN", "TSLA"}, cfg_us_trade)
+	go realtime.Connect(ctx, ch, []string{"GSPC", "DJI", "NDX", "TOPX", "N225"}, cfg_index)
+	// go realtime.Connect(ctx, ch, []string{"AMZN", "TSLA"}, cfg_us_trade)
 
 	for {
 		select {
