@@ -153,6 +153,7 @@ RECONNECT:
 	if err != nil {
 		log.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	err = subscribe(ctx, conn, channels, symbols)
 	if err != nil {
@@ -320,6 +321,7 @@ RECONNECT:
 	if err != nil {
 		log.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	if err := requestsForPrivate(ctx, conn, cfg.key, cfg.secret); err != nil {
 		log.Fatalf("cant connect to private %v", err)

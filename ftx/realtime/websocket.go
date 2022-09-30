@@ -150,6 +150,7 @@ RECONNECT:
 	if err != nil {
 		log.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, channels, symbols); err != nil {
 		log.Fatal(err)
@@ -292,6 +293,7 @@ RECONNECT:
 	if err != nil {
 		log.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	// sign up
 	if err := signature(ctx, conn, cfg.key, cfg.secret, cfg.subaccount); err != nil {

@@ -79,6 +79,7 @@ RECONNECT:
 	if err != nil {
 		cfg.l.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, symbols); err != nil {
 		cfg.l.Fatal(err)

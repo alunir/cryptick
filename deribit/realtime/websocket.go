@@ -115,6 +115,7 @@ RECONNECT:
 	if err != nil {
 		cfg.l.Fatal(err)
 	}
+	conn.SetReadLimit(1 << 62)
 
 	requestId = 1
 	if err := setHeartbeat(ctx, conn); err != nil {
