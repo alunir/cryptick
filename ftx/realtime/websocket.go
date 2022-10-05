@@ -148,12 +148,12 @@ RECONNECT:
 		CompressionMode: websocket.CompressionDisabled,
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, channels, symbols); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// ping each 15sec for exchange
@@ -283,7 +283,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
+func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) error {
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "ftx websocket", log.Llongfile)
 	}
@@ -291,17 +291,17 @@ func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string,
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	// sign up
 	if err := signature(ctx, conn, cfg.key, cfg.secret, cfg.subaccount); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := subscribe(ctx, conn, channels, nil); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	go ping(ctx, conn)

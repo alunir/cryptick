@@ -77,12 +77,12 @@ RECONNECT:
 	isSubscribe = false
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, symbols); err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 
 	var eg errgroup.Group

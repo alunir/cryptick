@@ -151,13 +151,13 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	err = subscribe(ctx, conn, channels, symbols)
 	if err != nil {
-		log.Fatalf("disconnect %v", err)
+		return err
 	}
 
 	var eg errgroup.Group
@@ -311,7 +311,7 @@ func requestsForPrivate(ctx context.Context, conn *websocket.Conn, key, secret s
 	return nil
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
+func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) error {
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "bitflyer websocket", log.Llongfile)
 	}
@@ -319,17 +319,17 @@ func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string,
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	if err := requestsForPrivate(ctx, conn, cfg.key, cfg.secret); err != nil {
-		log.Fatalf("cant connect to private %v", err)
+		return err
 	}
 
 	err = subscribe(ctx, conn, channels, nil)
 	if err != nil {
-		log.Fatalf("disconnect %v", err)
+		return err
 	}
 	defer unsubscribe(ctx, conn, channels, nil)
 

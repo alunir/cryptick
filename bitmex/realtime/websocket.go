@@ -108,12 +108,12 @@ RECONNECT:
 		CompressionMode: websocket.CompressionDisabled,
 	})
 	if err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, channels, symbols); err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 
 	go ping(ctx, conn)

@@ -113,17 +113,17 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	requestId = 1
 	if err := setHeartbeat(ctx, conn); err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 
 	if err := subscribe(ctx, conn, channels, symbols); err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 
 	var eg errgroup.Group

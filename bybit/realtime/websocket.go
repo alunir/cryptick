@@ -131,12 +131,12 @@ func Connect(ctx context.Context, ch chan Response, channels, symbols []string, 
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	if err := subscribe(ctx, conn, channels, symbols); err != nil {
-		cfg.l.Fatal(err)
+		return err
 	}
 
 	go ping(ctx, conn)
@@ -273,7 +273,7 @@ RECONNECT:
 	goto RECONNECT
 }
 
-func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) {
+func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string, cfg *Configuration) error {
 	if cfg.l == nil {
 		cfg.l = log.New(os.Stdout, "bybit websocket", log.Llongfile)
 	}
@@ -281,17 +281,17 @@ func ConnectForPrivate(ctx context.Context, ch chan Response, channels []string,
 RECONNECT:
 	conn, _, err := websocket.Dial(ctx, cfg.url, nil)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	conn.SetReadLimit(1 << 62)
 
 	// sign up
 	if err := signature(ctx, conn, cfg.key, cfg.secret); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := subscribe(ctx, conn, channels, nil); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	go ping(ctx, conn)
