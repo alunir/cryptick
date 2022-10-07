@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"lightning_ticker"}, []string{"FX_BTC_JPY"}, cfg)
+	go realtime.Connect(ctx, ch, []string{realtime.BITFLYER_TICKER}, []string{"FX_BTC_JPY"}, cfg)
 
 	for {
 		select {
@@ -42,7 +42,7 @@ func TestConnectForPrivate(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.ConnectForPrivate(ctx, ch, []string{"child_order_events", "parent_order_events"}, cfg)
+	go realtime.ConnectForPrivate(ctx, ch, []string{realtime.BITFLYER_CHILD_ORDER_EVENTS, realtime.BITFLYER_PARENT_ORDER_EVENTS}, cfg)
 
 	for {
 		select {

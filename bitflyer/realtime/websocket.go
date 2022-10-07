@@ -29,6 +29,15 @@ const (
 type Type int
 
 const (
+	BITFLYER_BOARD_SNAPSHOT      = "lightning_board_snapshot"
+	BITFLYER_BOARD               = "lightning_board"
+	BITFLYER_TICKER              = "lightning_ticker"
+	BITFLYER_EXECUTIONS          = "lightning_executions"
+	BITFLYER_CHILD_ORDER_EVENTS  = "child_order_events"
+	BITFLYER_PARENT_ORDER_EVENTS = "parent_order_events"
+)
+
+const (
 	ALL Type = iota
 	TICKER
 	TRADES
@@ -203,7 +212,7 @@ RECONNECT:
 			var w Response
 
 			switch {
-			case strings.HasPrefix(name, "lightning_board_snapshot_"):
+			case strings.HasPrefix(name, BITFLYER_BOARD_SNAPSHOT):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_snapshot_"):])
 				w.Type = ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
@@ -211,7 +220,7 @@ RECONNECT:
 				}
 				w.Orderbook.Sort()
 
-			case strings.HasPrefix(name, "lightning_board_"):
+			case strings.HasPrefix(name, BITFLYER_BOARD):
 				w.ProductCode = types.ProductCode(name[len("lightning_board_"):])
 				w.Type = DIFF_ORDERBOOK
 				if err := json.Unmarshal(data, &w.Orderbook); err != nil {
@@ -219,14 +228,14 @@ RECONNECT:
 				}
 				w.Orderbook.Sort()
 
-			case strings.HasPrefix(name, "lightning_ticker_"):
+			case strings.HasPrefix(name, BITFLYER_TICKER):
 				w.ProductCode = types.ProductCode(name[len("lightning_ticker_"):])
 				w.Type = TICKER
 				if err := json.Unmarshal(data, &w.Ticker); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 				}
 
-			case strings.HasPrefix(name, "lightning_executions_"):
+			case strings.HasPrefix(name, BITFLYER_EXECUTIONS):
 				w.ProductCode = types.ProductCode(name[len("lightning_executions_"):])
 				w.Type = TRADES
 				if err := json.Unmarshal(data, &w.Trades); err != nil {
@@ -370,14 +379,14 @@ RECONNECT:
 			var w Response
 
 			switch {
-			case strings.HasPrefix(name, "child_order_events"):
+			case strings.HasPrefix(name, BITFLYER_CHILD_ORDER_EVENTS):
 				w.Type = CHILD_ORDERS
 				if err := json.Unmarshal(data, &w.ChildOrderEvent); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal child_order_events %+v", err)
 					continue
 				}
 
-			case strings.HasPrefix(name, "parent_order_events"):
+			case strings.HasPrefix(name, BITFLYER_PARENT_ORDER_EVENTS):
 				w.Type = PARENT_ORDERS
 				if err := json.Unmarshal(data, &w.ParentOrderEvent); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal parent_order_events %+v", err)
