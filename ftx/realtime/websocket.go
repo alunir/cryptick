@@ -20,6 +20,14 @@ import (
 )
 
 const (
+	FTX_TICKER    = "ticker"
+	FTX_TRADES    = "trades"
+	FTX_ORDERBOOK = "orderbook"
+	FTX_FILLS     = "fills"
+	FTX_ORDERS    = "orders"
+)
+
+const (
 	UNDEFINED = iota
 	ERROR
 	TICKER
@@ -220,21 +228,21 @@ RECONNECT:
 			}
 
 			switch channel {
-			case "ticker":
+			case FTX_TICKER:
 				res.Type = TICKER
 				if err := json.Unmarshal(data, &res.Ticker); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal ticker %+v", err)
 					continue
 				}
 
-			case "trades":
+			case FTX_TRADES:
 				res.Type = TRADES
 				if err := json.Unmarshal(data, &res.Trades); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal trades %+v", err)
 					continue
 				}
 
-			case "orderbook":
+			case FTX_ORDERBOOK:
 				var obr *markets.OrderBookRaw
 				if err := json.Unmarshal(data, &obr); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal orderbook %+v", err)
@@ -357,14 +365,14 @@ RECONNECT:
 
 			// Private channel has not market name.
 			switch channel {
-			case "orders":
+			case FTX_ORDERS:
 				res.Type = ORDERS
 				if err := json.Unmarshal(data, &res.Orders); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal orders %+v", err)
 					continue
 				}
 
-			case "fills":
+			case FTX_FILLS:
 				res.Type = FILLS
 				if err := json.Unmarshal(data, &res.Fills); err != nil {
 					cfg.l.Printf("[WARN]: cant unmarshal fills %+v", err)

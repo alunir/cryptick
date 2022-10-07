@@ -17,7 +17,7 @@ func TestConnect(t *testing.T) {
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{"orderbook"}, []string{"ETH-PERP"}, cfg)
+	go realtime.Connect(ctx, ch, []string{realtime.FTX_TRADES}, []string{"ETH-PERP"}, cfg)
 
 	for {
 		select {
