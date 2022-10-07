@@ -37,13 +37,14 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-// Broken
 func TestConnectUSDT(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ch := make(chan realtime.Response)
-	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"ETHUSDT", "BTCUSDT"}, cfg_usdt)
+
+	// channels should be single string in USDT MAINNET
+	go realtime.Connect(ctx, ch, []string{realtime.BybitWSTrade}, []string{"BTCUSDT"}, cfg_usdt)
 
 	for {
 		select {
